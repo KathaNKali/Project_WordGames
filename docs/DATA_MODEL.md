@@ -27,6 +27,22 @@ One asset per level, authored via the in-Unity Level Editor.
 | `cols` | `int` | |
 | `voidCells` | `List<Vector2Int>` | Cells excluded from the playable grid entirely (visually and for collision) |
 
+## `GridStageConfig` (ScriptableObject, singleton config asset)
+
+Asset: `Assets/_Project/ScriptableObjects/GridStageConfig.asset`. Governs how the runtime `GridModel` derives its cell size and how `CameraRigController` frames the camera — see `ARCHITECTURE.md` for the Core-layer `GridModel`/`CameraFramingCalculator` responsibilities.
+
+| Field | Type | Notes |
+|---|---|---|
+| `designAreaWidth` | `float` | Fixed maximum width (world units) the grid may occupy on the "stage", regardless of `cols`. |
+| `designAreaHeight` | `float` | Fixed maximum height (world units) the grid may occupy on the "stage", regardless of `rows`. |
+| `margin` | `float` | Fixed padding (world units) added around the grid on all sides when the camera frames it — reserved as a HUD safe-area. |
+| `topHudRatio` | `float` (0-1) | Fraction of full screen height reserved for the top HUD. The game camera's viewport starts below this band. |
+| `bottomHudRatio` | `float` (0-1) | Fraction of full screen height reserved for the bottom HUD. The game camera's viewport ends above this band. |
+
+`GameAreaRatio` (derived, not serialized) = `1 - topHudRatio - bottomHudRatio`, clamped to a minimum of 0.01. `GridStageConfig.OnValidate` rescales `topHudRatio`/`bottomHudRatio` proportionally if their sum exceeds 0.98, to guarantee a usable game area. Default asset ships with `topHudRatio = 0.2`, `bottomHudRatio = 0.2` (60% center game area), per the portrait layout: top HUD (contents TBD), bottom HUD (power-ups), center = game area. `CameraRigController` applies this as a normalized `Camera.rect` (`Rect(0, bottomHudRatio, 1, GameAreaRatio)`) before framing, so `CameraFramingCalculator` fits the grid within that band using the band's own aspect ratio — not the full screen's.
+
+**Relationship to `GameConfig.cellSize` below:** `GameConfig.cellSize` was originally specified as a fixed base cell size. The implemented approach instead derives cell size per-level from `GridStageConfig` (`CellSize = min(designAreaWidth / cols, designAreaHeight / rows)`) so the grid's total footprint stays visually consistent across differently-sized levels. Treat `GridStageConfig` as the authoritative source for cell sizing; if `GameConfig.cellSize` is still needed for other systems (e.g. wall thickness ratio), it should be reconciled or removed in a follow-up — flagged here rather than silently resolved.
+
 ## `DoorData`
 
 | Field | Type | Notes |
@@ -133,4 +149,4 @@ If you need to add/change a field above:
 2. Update `LevelEditorWindow.cs` to expose the new field.
 3. Update `LevelLoader` deserialization.
 4. Confirm no already-authored `LevelData` assets break (write a migration step if they do — level assets are hand-authored and few in number at this stage, so simple manual fixup may be acceptable; use judgment).
-5. Note the change in `CHANGELOG.md`.
+5. Note the change in `CHANGELOG.md` (see root `docs/CHANGELOG.md`).

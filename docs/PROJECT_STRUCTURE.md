@@ -30,21 +30,28 @@ Assets/
     Scenes/
       Boot.unity                 // bootstraps services, loads MainMenu
       MainMenu.unity
-      Gameplay.unity
+      Gameplay.unity             // currently wired with Main Camera (CameraRigController) + GridDebug/Bootstrap test objects, pending real LevelLoader integration
     ScriptableObjects/
       Levels/                    // one LevelData asset per level, naming: Level_<levelId>.asset
       LevelSequence.asset
       CategoryDefinitions.asset
       GameConfig.asset
+      GridStageConfig.asset      // fixed design-area width/height + camera margin, see DATA_MODEL.md
     Scripts/
       Core/
+        StickersOut.Core.asmdef // own assembly so Core is referenceable by EditMode tests without depending on Assembly-CSharp
         GridModel.cs
+        GridStageConfig.cs
+        CameraFramingCalculator.cs
         GridCollisionMap.cs
         BlockModel.cs
         DoorModel.cs
         MergeSolver.cs
         LevelLoader.cs
       Gameplay/
+        CameraRigController.cs  // applies CameraFramingCalculator output to the real Camera on level load
+        GridDebugView.cs        // TEMPORARY Gizmos-only grid visualizer, remove once GridCellView/art exists
+        GameplayTestBootstrap.cs // TEMPORARY scene wiring for manual camera/grid validation, pending real LevelLoader
         DragController.cs
         BlockView.cs
         DoorView.cs
@@ -65,7 +72,8 @@ Assets/
         LevelEditorWindow.cs
         LevelDataDrawer.cs
     Tests/
-      EditMode/                  // pure-logic tests: MergeSolver, GridCollisionMap, etc. — no scene required
+      EditMode/                  // pure-logic tests: GridModelTests, CameraFramingCalculatorTests, MergeSolver, GridCollisionMap, etc. — no scene required
+        StickersOut.Tests.EditMode.asmdef // Editor-only test assembly, references StickersOut.Core + UnityEngine.TestRunner
       PlayMode/                  // integration tests: drag-to-exit, full level completion flow
   ThirdParty/                    // imported packages that need Assets-folder placement (rare with UPM, but keep separate if it happens)
 docs/                            // this file and its siblings (CLAUDE.md, ARCHITECTURE.md, etc.)

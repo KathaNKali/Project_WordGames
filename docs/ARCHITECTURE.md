@@ -29,7 +29,8 @@ The codebase is split into three layers so core logic stays testable and renderi
 
 | System | Responsibility |
 |---|---|
-| `GridModel` | Grid dimensions, wall cells, void cells — static board layout for the current level |
+| `GridModel` | Grid dimensions, wall cells, void cells — static board layout for the current level. Cell size is derived (not fixed): given a target design-area width/height (from `GridStageConfig`), it computes the largest square `CellSize` that fits `Columns x Rows` inside that area, so the grid's total world footprint stays within a designed stage regardless of level dimensions. Exposes `GridToWorld`/`WorldToGrid` conversions. Implemented in the `StickersOut.Core` assembly (own asmdef) so it's referenceable from EditMode tests. |
+| `CameraFramingCalculator` | Pure static function: given a grid's world width/height, a uniform margin, and a camera's aspect ratio, returns the orthographic size + center needed to fit the grid + margin in view (fit-by-width vs fit-by-height, whichever is more constraining). Takes aspect ratio as a parameter rather than reading `Camera`/`Screen` directly, so it's EditMode-testable without a scene. |
 | `GridCollisionMap` | O(1) lookup matrix (wall / void / block-ID / empty), rebuilt on every state mutation |
 | `BlockModel` | A block's grid position + its fragment list (shape) |
 | `DoorModel` | Edge, position, span, category, color, ice-count, exiting state |
@@ -40,6 +41,7 @@ The codebase is split into three layers so core logic stays testable and renderi
 
 | System | Responsibility |
 |---|---|
+| `CameraRigController` | Lives on the Main Camera. On level load, first applies a normalized `Camera.rect` derived from `GridStageConfig.TopHudRatio`/`BottomHudRatio` so the camera only renders into the center "game area" band (portrait screen split: top HUD / game area / bottom HUD, default 20%/60%/20%). It then reads that band's own aspect ratio and the loaded `GridModel`'s world bounds, calls `CameraFramingCalculator`, and applies the resulting orthographic size/position to the `Camera` component. Recomputed once per level load (grid dimensions are fixed per level), with a `Refit()` entry point for future device-rotation handling — not recalculated per-frame. The Top/Bottom HUD themselves are a separate Screen Space - Overlay `Canvas` (not owned by this controller) whose panel anchors must match the same ratios so HUD and camera viewport align. |
 | `DragController` | Reads pointer input, steps a dragged block's position against `GridCollisionMap`, resolves door-exit conditions |
 | `PowerupController` | Rocket (remove all fragments matching a word/color target) and Hammer (split a merged block into original source pieces) logic + unlock-state gating |
 | `TimerController` | Countdown, triggers lose state on expiry |
